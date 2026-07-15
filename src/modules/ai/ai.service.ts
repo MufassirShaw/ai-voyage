@@ -1,21 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 import { Observable } from 'rxjs';
-
-export interface CustomMessageEvent {
-  data: {
-    text: string;
-    type: 'message' | 'end' | 'error';
-    citations?: Anthropic.Messages.CitationsDelta[];
-  };
-}
-
-export interface AiOptions {
-  model?: string;
-  maxTokens?: number;
-}
-
-type MessagesInput = string | Anthropic.Messages.MessageParam[];
 
 @Injectable()
 export class AiService {
@@ -33,20 +19,22 @@ export class AiService {
     );
   }
 
-  private toMessages(input: MessagesInput): Anthropic.Messages.MessageParam[] {
+  private toMessages(
+    input: Anthropic.Messages.MessageParam[],
+  ): Anthropic.Messages.MessageParam[] {
     return typeof input === 'string'
       ? [{ role: 'user', content: input }]
       : input;
   }
 
   async generateText(
-    input: MessagesInput,
-    options?: AiOptions,
+    input: Anthropic.Messages.MessageParam[],
+    options: Anthropic.MessageCreateParams,
   ): Promise<Anthropic.Messages.Message> {
     try {
       const response = await this.aiClient.messages.create({
         model: options?.model ?? this.defaultModel,
-        max_tokens: options?.maxTokens ?? this.defaultMaxTokens,
+        max_tokens: options?.max_tokens || this.defaultMaxTokens,
         messages: this.toMessages(input),
       });
       return response;
@@ -56,31 +44,31 @@ export class AiService {
   }
 
   stream(
-    input: MessagesInput,
-    options?: AiOptions,
+    input: Anthropic.Messages.MessageParam[],
+    options?: Anthropic.MessageCreateParams,
   ): Observable<CustomMessageEvent> {
     return new Observable((subscriber) => {
       const s = this.aiClient.messages.stream({
         model: options?.model ?? this.defaultModel,
-        max_tokens: options?.maxTokens ?? this.defaultMaxTokens,
+        max_tokens: options?.max_tokens || this.defaultMaxTokens,
         messages: this.toMessages(input),
       });
 
       s.on('text', (text) =>
         subscriber.next({
-          data: { text, type: 'message' },
+          data: { text, type: CustomMessageEventType.MESSAGE },
         }),
       );
       s.on('end', () => {
         subscriber.next({
-          data: { text: '', type: 'end' },
+          data: { text: '', type: CustomMessageEventType.END },
         });
         subscriber.complete();
       });
 
       s.on('error', (err) =>
         subscriber.next({
-          data: { text: err.message, type: 'error' },
+          data: { text: err.message, type: CustomMessageEventType.ERROR },
         }),
       );
 
