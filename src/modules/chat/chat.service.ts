@@ -2,7 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { Observable } from 'rxjs';
-import { AiService, CustomMessageEvent } from '../ai/ai.service';
+import { AiService } from '../ai/ai.service';
+import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 import { Session } from './types/chat.types';
 import { SendMessageDto } from './dto/send-message.dto';
 
@@ -68,10 +69,10 @@ export class ChatService {
     return new Observable((subscriber) => {
       const sub = source$.subscribe({
         next: (event) => {
-          if (event.data.type === 'message') {
+          if (event.data.type === CustomMessageEventType.MESSAGE) {
             assistantText += event.data.text;
           }
-          if (event.data.type === 'end') {
+          if (event.data.type === CustomMessageEventType.END) {
             session.messages.push({
               role: 'assistant',
               content: assistantText,
