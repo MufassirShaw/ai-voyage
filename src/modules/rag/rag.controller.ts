@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 
 import { IngestDocumentDto } from './dto/ingest-document.dto';
 import { RagQueryDto } from './dto/rag-query.dto';
@@ -16,6 +16,11 @@ export class RagController {
   @Get('documents')
   listDocuments() {
     return this.ragService.listDocuments();
+  }
+
+  @Get('documents/:id')
+  getDocument(@Param('id') id: string) {
+    return this.ragService.getDocument(id);
   }
 
   @Post('query')

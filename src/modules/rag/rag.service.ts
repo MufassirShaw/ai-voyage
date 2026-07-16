@@ -1,5 +1,5 @@
 import { Anthropic } from '@anthropic-ai/sdk';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { AiService } from '../ai/ai.service';
 import { DocumentStatus } from '../documents/document-status.enum';
@@ -38,6 +38,18 @@ export class RagService {
         status: d.status,
         createdAt: d.createdAt,
       })),
+    };
+  }
+
+  async getDocument(id: string) {
+    const doc = await this.documentRepository.findById(id);
+    if (!doc) throw new NotFoundException(`Document ${id} not found`);
+    return {
+      id: doc.id,
+      title: doc.title,
+      status: doc.status,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
     };
   }
 
