@@ -1,17 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { EmbeddingService } from '../embedding/embedding.service';
-import { VectorStoreService } from '../vector-store/vector-store.service';
+import { VectorStoreService } from '@/modules/vector-store/vector-store.service';
 
 const CHUNK_SIZE = 500;
 const CHUNK_OVERLAP = 100;
 
 @Injectable()
 export class IngestionService {
-  constructor(
-    private readonly embeddingService: EmbeddingService,
-    private readonly vectorStore: VectorStoreService,
-  ) {}
+  constructor(private readonly vectorStore: VectorStoreService) {}
 
   async ingest(
     title: string,
@@ -25,13 +21,9 @@ export class IngestionService {
       content: text,
     }));
 
-    const embeddings = await this.embeddingService.embed(
-      docs.map((d) => d.content),
+    await this.vectorStore.addBatch(
+      docs.map((doc) => ({ text: doc.content, payload: doc })),
     );
-
-    for (let i = 0; i < docs.length; i++) {
-      this.vectorStore.add(docs[i], embeddings[i]);
-    }
 
     return { chunksStored: docs.length };
   }

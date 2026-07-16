@@ -1,10 +1,14 @@
-export default () => {
+export const configuration = () => {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY is not set');
   }
 
   if (!process.env.VOYAGE_API_KEY) {
     throw new Error('VOYAGE_API_KEY is not set');
+  }
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set');
   }
 
   return {
@@ -15,6 +19,10 @@ export default () => {
     },
     voyage: {
       apiKey: process.env.VOYAGE_API_KEY,
+      model: process.env.VOYAGE_MODEL || 'voyage-3',
+    },
+    database: {
+      url: process.env.DATABASE_URL,
     },
   };
 };

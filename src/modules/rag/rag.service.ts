@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { AiService } from '../ai/ai.service';
-import { EmbeddingService } from './embedding/embedding.service';
-import {
-  VectorStoreService,
-  StoredDocument,
-} from './vector-store/vector-store.service';
+import { VectorStoreService } from '../vector-store/vector-store.service';
 import { IngestionService } from './ingestion/ingestion.service';
+import { StoredDocument } from './types/rag-document';
 import { IngestDocumentDto } from './dto/ingest-document.dto';
 import { RagQueryDto } from './dto/rag-query.dto';
 
@@ -14,7 +11,6 @@ import { RagQueryDto } from './dto/rag-query.dto';
 export class RagService {
   constructor(
     private readonly aiService: AiService,
-    private readonly embeddingService: EmbeddingService,
     private readonly vectorStore: VectorStoreService,
     private readonly ingestionService: IngestionService,
   ) {}
@@ -24,13 +20,20 @@ export class RagService {
   }
 
   listDocuments() {
-    return { titles: this.vectorStore.listTitles() };
+    const seen = new Set<string>();
+    const titles = this.vectorStore
+      .listAll<StoredDocument>()
+      .map((d) => d.title)
+      .filter((t) => (seen.has(t) ? false : seen.add(t) && true));
+    return { titles };
   }
 
   async query(dto: RagQueryDto) {
     const topK = dto.topK ?? 5;
-    const queryEmbedding = await this.embeddingService.embedOne(dto.question);
-    const chunks = this.vectorStore.search(queryEmbedding, topK);
+    const chunks = await this.vectorStore.search<StoredDocument>(
+      dto.question,
+      topK,
+    );
 
     if (chunks.length === 0) {
       return { answer: 'No documents have been ingested yet.', sources: [] };
