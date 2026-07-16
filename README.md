@@ -12,7 +12,7 @@ Currently implementing two products: a **streaming chat API with citations** and
 Sessions that maintain message history. Each message can attach source documents; Claude will cite specific passages in its response using Anthropic's native Citations API.
 
 ### RAG — document Q&A
-Ingest text documents, chunk and embed them with [Voyage AI](https://www.voyageai.com/), store in an in-memory vector store, then answer questions by retrieving the most relevant chunks and passing them to Claude as cited document blocks.
+Ingest text documents, chunk and embed them with OpenAI embeddings, store in an in-memory vector store, then answer questions by retrieving the most relevant chunks and passing them to Claude as cited document blocks.
 
 ---
 
@@ -20,7 +20,7 @@ Ingest text documents, chunk and embed them with [Voyage AI](https://www.voyagea
 
 - **Runtime**: Node.js, NestJS
 - **LLM**: Claude via `@anthropic-ai/sdk` (`claude-sonnet-4-6` default)
-- **Embeddings**: Voyage AI (`voyage-3`) via `voyageai`
+- **Embeddings**: OpenAI (`text-embedding-3-small`) via `openai`
 - **Vector store**: In-memory cosine similarity (for now)
 - **Streaming**: Server-Sent Events (SSE) via NestJS `@Sse`
 
@@ -36,11 +36,13 @@ Create a `.env` file:
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
-VOYAGE_API_KEY=pa-...
+OPENAI_API_KEY=sk-...
+DATABASE_URL=postgresql://...
 
 # Optional overrides
 ANTHROPIC_MODEL=claude-sonnet-4-6
 ANTHROPIC_MAX_TOKENS=1024
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 ```bash
@@ -123,13 +125,16 @@ curl -X POST http://localhost:3000/rag/query \
 ```
 src/
   modules/
-    ai/          # Base AiService — thin Anthropic SDK wrapper (streaming + non-streaming)
-    chat/        # Multi-turn sessions, citation-aware message building
+    ai/            # AiService — thin Anthropic SDK wrapper (streaming + non-streaming)
+    chat/          # Multi-turn sessions, citation-aware message building
+    vector-store/  # Infrastructure: OpenAI embeddings (internal) + in-memory cosine search
     rag/
-      embedding/ # Voyage AI embedding calls
-      ingestion/ # Chunking (500-char, 100-char overlap) + indexing
-      vector-store/ # In-memory cosine similarity search
+      ingestion/   # Chunking (500-char, 100-char overlap) + delegates to VectorStoreService
+      types/       # RAG-specific types (StoredDocument)
+  config/          # Typed config factory (anthropic.*, openai.*, database.*)
 ```
+
+`VectorStoreModule` is consumer-agnostic — callers pass text and a typed payload; embedding is handled internally and invisible to consumers.
 
 `AiService` accepts either a plain string or a full `MessageParam[]` array, with optional model/maxTokens overrides — so every module can drive the LLM call directly without fighting the service layer.
 
@@ -138,8 +143,7 @@ src/
 ## Planned
 
 - [ ] Persistent vector store (pgvector or Qdrant)
-- [ ] File upload ingestion (PDF, markdown)
+- [ ] PostgreSQL document metadata (Neon) with status tracking
+- [ ] File upload ingestion (PDF)
 - [ ] Auth layer
 - [ ] Frontend
-
-

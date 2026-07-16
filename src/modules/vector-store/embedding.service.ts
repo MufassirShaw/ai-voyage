@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { VoyageAIClient } from 'voyageai';
+import OpenAI from 'openai';
 
 @Injectable()
 export class EmbeddingService {
   constructor(
-    private readonly client: VoyageAIClient,
+    private readonly client: OpenAI,
     private readonly configService: ConfigService,
   ) {}
 
   async embed(texts: string[]): Promise<number[][]> {
-    const result = await this.client.embed({
+    const response = await this.client.embeddings.create({
+      model: this.configService.get<string>('openai.embeddingModel')!,
       input: texts,
-      model: this.configService.get<string>('voyage.model')!,
+      encoding_format: 'float',
     });
-    return result.data!.map((item) => item.embedding as number[]);
+    return response.data.map((item) => item.embedding);
   }
 
   async embedOne(text: string): Promise<number[]> {
