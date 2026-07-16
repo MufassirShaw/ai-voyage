@@ -4,17 +4,16 @@ import { VoyageAIClient } from 'voyageai';
 
 @Injectable()
 export class EmbeddingService {
-  private readonly client: VoyageAIClient;
-  private readonly model = 'voyage-3';
-
-  constructor(private readonly configService: ConfigService) {
-    this.client = new VoyageAIClient({
-      apiKey: this.configService.get<string>('voyage.apiKey'),
-    });
-  }
+  constructor(
+    private readonly client: VoyageAIClient,
+    private readonly configService: ConfigService,
+  ) {}
 
   async embed(texts: string[]): Promise<number[][]> {
-    const result = await this.client.embed({ input: texts, model: this.model });
+    const result = await this.client.embed({
+      input: texts,
+      model: this.configService.get<string>('voyage.model')!,
+    });
     return result.data!.map((item) => item.embedding as number[]);
   }
 
