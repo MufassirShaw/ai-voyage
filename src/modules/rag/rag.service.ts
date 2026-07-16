@@ -47,7 +47,7 @@ export class RagService {
     ];
 
     const response = await this.aiService.generateText(messages, {
-      maxTokens: 2048,
+      max_tokens: 2048,
     });
 
     const answerText = response.content

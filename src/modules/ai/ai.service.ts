@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 import { Observable } from 'rxjs';
 
 @Injectable()
 export class AiService {
-  readonly aiClient: Anthropic;
   private readonly defaultModel: string;
   private readonly defaultMaxTokens: number;
 
-  constructor() {
-    this.aiClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-    this.defaultModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
-    this.defaultMaxTokens = parseInt(
-      process.env.ANTHROPIC_MAX_TOKENS || '1024',
-    );
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly aiClient: Anthropic,
+  ) {
+    this.defaultModel = this.configService.get<string>('anthropic.model')!;
+    this.defaultMaxTokens = this.configService.get<number>(
+      'anthropic.maxTokens',
+    )!;
   }
 
   private toMessages(
@@ -29,12 +29,17 @@ export class AiService {
 
   async generateText(
     input: Anthropic.Messages.MessageParam[],
-    options: Anthropic.MessageCreateParams,
+    options?: Partial<
+      Pick<
+        Anthropic.Messages.MessageCreateParamsNonStreaming,
+        'model' | 'max_tokens'
+      >
+    >,
   ): Promise<Anthropic.Messages.Message> {
     try {
       const response = await this.aiClient.messages.create({
         model: options?.model ?? this.defaultModel,
-        max_tokens: options?.max_tokens || this.defaultMaxTokens,
+        max_tokens: options?.max_tokens ?? this.defaultMaxTokens,
         messages: this.toMessages(input),
       });
       return response;
@@ -45,12 +50,17 @@ export class AiService {
 
   stream(
     input: Anthropic.Messages.MessageParam[],
-    options?: Anthropic.MessageCreateParams,
+    options?: Partial<
+      Pick<
+        Anthropic.Messages.MessageCreateParamsNonStreaming,
+        'model' | 'max_tokens'
+      >
+    >,
   ): Observable<CustomMessageEvent> {
     return new Observable((subscriber) => {
       const s = this.aiClient.messages.stream({
         model: options?.model ?? this.defaultModel,
-        max_tokens: options?.max_tokens || this.defaultMaxTokens,
+        max_tokens: options?.max_tokens ?? this.defaultMaxTokens,
         messages: this.toMessages(input),
       });
 
