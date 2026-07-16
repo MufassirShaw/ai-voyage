@@ -1,24 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { VoyageAIClient } from 'voyageai';
+import OpenAI from 'openai';
 import { EmbeddingService } from './embedding.service';
 import { VectorStoreService } from './vector-store.service';
 
+const OpenAIProvider = {
+  provide: OpenAI,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) =>
+    new OpenAI({ apiKey: config.get<string>('openai.apiKey')! }),
+};
+
 @Module({
-  providers: [
-    {
-      provide: VoyageAIClient,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const client = new VoyageAIClient({
-          apiKey: config.get<string>('voyage.apiKey'),
-        });
-        return client;
-      },
-    },
-    EmbeddingService,
-    VectorStoreService,
-  ],
+  providers: [OpenAIProvider, EmbeddingService, VectorStoreService],
   exports: [VectorStoreService],
 })
 export class VectorStoreModule {}
