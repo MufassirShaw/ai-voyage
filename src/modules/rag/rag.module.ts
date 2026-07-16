@@ -9,11 +9,6 @@ import { RagController } from './rag.controller';
 @Module({
   imports: [AiModule],
   controllers: [RagController],
-  providers: [
-    EmbeddingService,
-    VectorStoreService,
-    IngestionService,
-    RagService,
-  ],
+  providers: [EmbeddingService, VectorStoreService, IngestionService, RagService],
 })
 export class RagModule {}

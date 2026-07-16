@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { VoyageAIClient } from 'voyageai';
 
 @Injectable()
@@ -6,8 +7,10 @@ export class EmbeddingService {
   private readonly client: VoyageAIClient;
   private readonly model = 'voyage-3';
 
-  constructor() {
-    this.client = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY });
+  constructor(private readonly configService: ConfigService) {
+    this.client = new VoyageAIClient({
+      apiKey: this.configService.get<string>('voyage.apiKey'),
+    });
   }
 
   async embed(texts: string[]): Promise<number[][]> {
