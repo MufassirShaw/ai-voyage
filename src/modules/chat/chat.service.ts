@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { AiService } from '../ai/ai.service';
+import { v4 as uuidv4 } from 'uuid';
+
 import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
-import { Session } from './types/chat.types';
+
+import { AiService } from '../ai/ai.service';
 import { SendMessageDto } from './dto/send-message.dto';
+import { Session } from './types/chat.types';
 
 @Injectable()
 export class ChatService {

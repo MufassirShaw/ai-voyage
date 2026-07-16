@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { EmbeddingService } from './embedding.service';
 
 interface VectorEntry {

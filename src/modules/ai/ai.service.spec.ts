@@ -1,8 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { AiService } from './ai.service';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+
 import { CustomMessageEventType } from '@/types/events';
+
+import { AiService } from './ai.service';
 
 const configMap: Record<string, string | number> = {
   'anthropic.model': 'claude-sonnet-4-6',
