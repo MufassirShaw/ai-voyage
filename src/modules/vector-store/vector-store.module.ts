@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+
 import { EmbeddingService } from './embedding.service';
 import { VectorStoreService } from './vector-store.service';
 

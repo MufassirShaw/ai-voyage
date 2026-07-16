@@ -8,9 +8,11 @@ import {
   Sse,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+
+import { CustomMessageEvent } from '@/types/events';
+
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/send-message.dto';
-import { CustomMessageEvent } from '@/types/events';
 
 @Controller('chat')
 export class ChatController {

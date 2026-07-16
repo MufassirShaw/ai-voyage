@@ -1,8 +1,9 @@
+import { Anthropic } from '@anthropic-ai/sdk';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Anthropic } from '@anthropic-ai/sdk';
-import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 import { Observable } from 'rxjs';
+
+import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 
 @Injectable()
 export class AiService {

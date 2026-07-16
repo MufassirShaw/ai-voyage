@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { Injectable } from '@nestjs/common';
+
 import { AiService } from '../ai/ai.service';
+import { DocumentStatus } from '../documents/document-status.enum';
+import { DocumentRepository } from '../documents/document.repository';
 import { VectorStoreService } from '../vector-store/vector-store.service';
-import { IngestionService } from './ingestion/ingestion.service';
-import { StoredDocument } from './types/rag-document';
 import { IngestDocumentDto } from './dto/ingest-document.dto';
 import { RagQueryDto } from './dto/rag-query.dto';
+import { IngestionService } from './ingestion/ingestion.service';
+import { StoredDocument } from './types/rag-document';
 
 @Injectable()
 export class RagService {
@@ -13,19 +16,29 @@ export class RagService {
     private readonly aiService: AiService,
     private readonly vectorStore: VectorStoreService,
     private readonly ingestionService: IngestionService,
+    private readonly documentRepository: DocumentRepository,
   ) {}
 
   async ingest(dto: IngestDocumentDto) {
-    return this.ingestionService.ingest(dto.title, dto.content);
+    const doc = await this.documentRepository.create(dto.title);
+    const result = await this.ingestionService.ingest(dto.title, dto.content);
+    await this.documentRepository.updateStatus(
+      doc.id,
+      DocumentStatus.COMPLETED,
+    );
+    return result;
   }
 
-  listDocuments() {
-    const seen = new Set<string>();
-    const titles = this.vectorStore
-      .listAll<StoredDocument>()
-      .map((d) => d.title)
-      .filter((t) => (seen.has(t) ? false : seen.add(t) && true));
-    return { titles };
+  async listDocuments() {
+    const docs = await this.documentRepository.findAll();
+    return {
+      documents: docs.map((d) => ({
+        id: d.id,
+        title: d.title,
+        status: d.status,
+        createdAt: d.createdAt,
+      })),
+    };
   }
 
   async query(dto: RagQueryDto) {

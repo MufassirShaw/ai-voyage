@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+
 import { VectorStoreService } from '@/modules/vector-store/vector-store.service';
 
 const CHUNK_SIZE = 500;

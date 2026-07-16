@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { RagService } from './rag.service';
+
 import { IngestDocumentDto } from './dto/ingest-document.dto';
 import { RagQueryDto } from './dto/rag-query.dto';
+import { RagService } from './rag.service';
 
 @Controller('rag')
 export class RagController {
