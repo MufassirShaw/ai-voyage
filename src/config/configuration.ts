@@ -25,5 +25,10 @@ export const configuration = () => {
     database: {
       url: process.env.DATABASE_URL,
     },
+    upload: {
+      maxFileSize: parseInt(
+        process.env.UPLOAD_MAX_FILE_SIZE ?? String(10 * 1024 * 1024),
+      ),
+    },
   };
 };
