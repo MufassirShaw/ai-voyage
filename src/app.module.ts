@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 import { AppController } from './app.controller';
 import { configuration } from './config/configuration';
@@ -19,6 +21,9 @@ import { VectorStoreModule } from './modules/vector-store/vector-store.module';
     AiModule,
     ChatModule,
     RagModule,
+    MulterModule.register({
+      storage: memoryStorage(),
+    }),
   ],
   controllers: [AppController],
   providers: [],

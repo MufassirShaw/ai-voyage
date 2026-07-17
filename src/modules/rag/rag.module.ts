@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 
-import { AiModule } from '../ai/ai.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { VectorStoreModule } from '../vector-store/vector-store.module';
 import { IngestionService } from './ingestion/ingestion.service';
 import { RagController } from './rag.controller';
 import { RagService } from './rag.service';
+import { TextExtractionService } from './text-extraction/text-extraction.service';
 
 @Module({
-  imports: [AiModule, VectorStoreModule, DocumentsModule],
+  imports: [VectorStoreModule, DocumentsModule],
   controllers: [RagController],
-  providers: [RagService, IngestionService],
+  providers: [RagService, IngestionService, TextExtractionService],
 })
 export class RagModule {}
