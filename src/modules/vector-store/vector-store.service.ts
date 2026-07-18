@@ -25,7 +25,9 @@ export class VectorStoreService {
   }
 
   async search<T>(query: string, topK: number): Promise<T[]> {
-    if (this.store.length === 0) return [];
+    if (!this.store.length) {
+      return [];
+    }
 
     const queryEmbedding = await this.embeddingService.embedOne(query);
 

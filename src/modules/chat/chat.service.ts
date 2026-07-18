@@ -24,13 +24,16 @@ export class ChatService {
 
   getSession(id: string): Session {
     const session = this.sessions.get(id);
-    if (!session) throw new NotFoundException(`Session ${id} not found`);
+    if (!session) {
+      throw new NotFoundException(`Session ${id} not found`);
+    }
     return session;
   }
 
   deleteSession(id: string): void {
-    if (!this.sessions.has(id))
+    if (!this.sessions.has(id)) {
       throw new NotFoundException(`Session ${id} not found`);
+    }
     this.sessions.delete(id);
   }
 
