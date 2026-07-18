@@ -2,10 +2,8 @@ import {
   Body,
   Controller,
   FileTypeValidator,
-  Get,
   HttpCode,
   HttpStatus,
-  Param,
   ParseFilePipe,
   PayloadTooLargeException,
   Post,
@@ -26,9 +24,9 @@ export class RagController {
   ) {}
 
   @HttpCode(HttpStatus.CREATED)
-  @Post('document/ingest')
+  @Post('ingest')
   @UseInterceptors(FileInterceptor('file'))
-  uploadDocument(
+  ingest(
     @UploadedFile(
       new ParseFilePipe({
         validators: [new FileTypeValidator({ fileType: 'application/pdf' })],
@@ -38,25 +36,12 @@ export class RagController {
     @Body('title') title?: string,
   ) {
     const maxFileSize = this.configService.get<number>('upload.maxFileSize')!;
-
-    // could be refactored to use the FileValidationPipe
     if (file.size > maxFileSize) {
       throw new PayloadTooLargeException(
         `File exceeds the ${maxFileSize} byte limit`,
       );
     }
-
-    return this.ragService.uploadDocument(file, title);
-  }
-
-  @Get('documents')
-  listDocuments() {
-    return this.ragService.listDocuments();
-  }
-
-  @Get('documents/:id')
-  getDocument(@Param('id') id: string) {
-    return this.ragService.getDocument(id);
+    return this.ragService.ingest(file, title);
   }
 
   @Post('query')
