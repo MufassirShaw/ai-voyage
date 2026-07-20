@@ -3,17 +3,14 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
+import { AbstractEntity } from '../database/abstract.entity';
 import { DocumentStatus } from './document-status.enum';
 
 @Entity('documents')
-export class DocumentEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class DocumentEntity extends AbstractEntity<DocumentEntity> {
   @Column()
   title: string;
 

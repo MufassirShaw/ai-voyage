@@ -18,18 +18,24 @@ export class DocumentRepository {
   }
 
   findAll(): Promise<DocumentEntity[]> {
-    return this.db.findMany(DocumentEntity, { order: { createdAt: 'DESC' } });
+    return this.db.findMany<DocumentEntity>(DocumentEntity, {
+      order: { createdAt: 'DESC' },
+    });
   }
 
   findById(id: string): Promise<DocumentEntity | null> {
-    return this.db.findOne(DocumentEntity, { id });
+    return this.db.findOne<DocumentEntity>(DocumentEntity, { id });
   }
 
   findByHash(contentHash: string): Promise<DocumentEntity | null> {
-    return this.db.findOne(DocumentEntity, { contentHash });
+    return this.db.findOne<DocumentEntity>(DocumentEntity, { contentHash });
   }
 
   updateStatus(id: string, status: DocumentStatus): Promise<UpdateResult> {
-    return this.db.updateOne(DocumentEntity, { id }, { status });
+    return this.db.updateOne<DocumentEntity>(
+      DocumentEntity,
+      { id },
+      { status },
+    );
   }
 }
