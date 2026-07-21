@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 
 import { EmbeddingService } from './embedding.service';
-import { VectorStoreService } from './vector-store.service';
 
 const OpenAIProvider = {
   provide: OpenAI,
@@ -13,7 +12,7 @@ const OpenAIProvider = {
 };
 
 @Module({
-  providers: [OpenAIProvider, EmbeddingService, VectorStoreService],
-  exports: [VectorStoreService],
+  providers: [OpenAIProvider, EmbeddingService],
+  exports: [EmbeddingService],
 })
-export class VectorStoreModule {}
+export class EmbeddingModule {}

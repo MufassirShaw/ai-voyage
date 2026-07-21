@@ -3,11 +3,13 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToMany,
   UpdateDateColumn,
 } from 'typeorm';
 
-import { AbstractEntity } from '../database/abstract.entity';
-import { DocumentStatus } from './document-status.enum';
+import { AbstractEntity } from '../../common/abstract.entity';
+import { DocumentStatus } from '../types/document-status.enum';
+import { DocumentChunkEntity } from './document-chunk.entity';
 
 @Entity('documents')
 export class DocumentEntity extends AbstractEntity<DocumentEntity> {
@@ -30,4 +32,7 @@ export class DocumentEntity extends AbstractEntity<DocumentEntity> {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => DocumentChunkEntity, (chunk) => chunk.document)
+  chunks: DocumentChunkEntity[];
 }

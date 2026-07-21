@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { DocumentRepository } from './document.repository';
+import { DocumentRepository } from './repositories/document.repository';
 
 @Injectable()
 export class DocumentsService {
