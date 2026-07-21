@@ -19,7 +19,7 @@ export class DocumentChunkRepository {
   ) {}
 
   insertMany(
-    documentId: number,
+    documentId: string,
     chunks: ChunkInput[],
   ): Promise<DocumentChunkEntity[]> {
     return this.repo.save(

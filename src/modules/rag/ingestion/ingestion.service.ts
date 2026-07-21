@@ -14,7 +14,7 @@ export class IngestionService {
   ) {}
 
   async ingest(
-    documentId: number,
+    documentId: string,
     content: string,
   ): Promise<{ chunksStored: number }> {
     const texts = chunk(content, CHUNK_SIZE, CHUNK_OVERLAP);

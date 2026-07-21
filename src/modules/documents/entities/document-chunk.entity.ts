@@ -15,8 +15,8 @@ export class DocumentChunkEntity extends AbstractEntity<DocumentChunkEntity> {
   document: DocumentEntity;
 
   @Index()
-  @Column('int')
-  documentId: number;
+  @Column('uuid')
+  documentId: string;
 
   @Column('int')
   chunkIndex: number;

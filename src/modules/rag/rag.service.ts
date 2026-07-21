@@ -42,7 +42,7 @@ export class RagService {
     await this.documentRepository.updateStatus(id, DocumentStatus.PROCESSING);
     try {
       const text = await this.textExtractionService.extract(buffer);
-      const result = await this.ingestionService.ingest(Number(id), text);
+      const result = await this.ingestionService.ingest(id, text);
       await this.documentRepository.updateStatus(id, DocumentStatus.COMPLETED);
       return result;
     } catch (e) {
