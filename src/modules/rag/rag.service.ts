@@ -1,18 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 
-import { DocumentStatus } from '../documents/document-status.enum';
-import { DocumentRepository } from '../documents/document.repository';
-import { VectorStoreService } from '../vector-store/vector-store.service';
+import { DocumentChunkRepository } from '../documents/repositories/document-chunk.repository';
+import { DocumentRepository } from '../documents/repositories/document.repository';
+import { DocumentStatus } from '../documents/types/document-status.enum';
+import { EmbeddingService } from '../embedding/embedding.service';
 import { RagQueryDto } from './dto/rag-query.dto';
 import { IngestionService } from './ingestion/ingestion.service';
 import { TextExtractionService } from './text-extraction/text-extraction.service';
-import { StoredDocument } from './types/rag-document';
 
 @Injectable()
 export class RagService {
   constructor(
-    private readonly vectorStore: VectorStoreService,
+    private readonly embeddingService: EmbeddingService,
+    private readonly chunkRepository: DocumentChunkRepository,
     private readonly ingestionService: IngestionService,
     private readonly documentRepository: DocumentRepository,
     private readonly textExtractionService: TextExtractionService,
@@ -28,19 +29,22 @@ export class RagService {
 
     const docTitle = title ?? file.originalname;
     const doc = await this.documentRepository.create(docTitle, contentHash);
-    const result = await this.processAndIngest(doc.id, docTitle, file.buffer);
+    const { chunksStored } = await this.processAndIngest(doc.id, file.buffer);
 
-    return { documentId: doc.id, status: doc.status, ...result };
+    return {
+      documentId: doc.id,
+      status: DocumentStatus.COMPLETED,
+      chunksStored,
+    };
   }
 
-  private async processAndIngest(id: string, title: string, buffer: Buffer) {
+  private async processAndIngest(id: string, buffer: Buffer) {
     await this.documentRepository.updateStatus(id, DocumentStatus.PROCESSING);
     try {
       const text = await this.textExtractionService.extract(buffer);
-      // TODO: ingest the text into the vector store
-      // await this.ingestionService.ingest(title, text);
+      const result = await this.ingestionService.ingest(id, text);
       await this.documentRepository.updateStatus(id, DocumentStatus.COMPLETED);
-      return { text, title };
+      return result;
     } catch (e) {
       await this.documentRepository.updateStatus(id, DocumentStatus.FAILED);
       throw e;
@@ -49,10 +53,8 @@ export class RagService {
 
   async query(dto: RagQueryDto) {
     const topK = dto.topK ?? 5;
-    const chunks = await this.vectorStore.search<StoredDocument>(
-      dto.question,
-      topK,
-    );
+    const queryEmbedding = await this.embeddingService.embedOne(dto.question);
+    const chunks = await this.chunkRepository.search(queryEmbedding, topK);
 
     if (!chunks.length) {
       return { answer: 'No documents have been ingested yet.', sources: [] };
@@ -60,7 +62,7 @@ export class RagService {
 
     return {
       sources: chunks.map((c) => ({
-        title: c.title,
+        title: c.document.title,
         chunkIndex: c.chunkIndex,
       })),
     };

@@ -1,32 +1,39 @@
 import { Injectable } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
 
-import { VectorStoreService } from '@/modules/vector-store/vector-store.service';
+import { DocumentChunkRepository } from '@/modules/documents/repositories/document-chunk.repository';
+import { EmbeddingService } from '@/modules/embedding/embedding.service';
 
 const CHUNK_SIZE = 500;
 const CHUNK_OVERLAP = 100;
 
 @Injectable()
 export class IngestionService {
-  constructor(private readonly vectorStore: VectorStoreService) {}
+  constructor(
+    private readonly embeddingService: EmbeddingService,
+    private readonly chunkRepository: DocumentChunkRepository,
+  ) {}
 
   async ingest(
-    title: string,
+    documentId: string,
     content: string,
   ): Promise<{ chunksStored: number }> {
-    const chunks = chunk(content, CHUNK_SIZE, CHUNK_OVERLAP);
-    const docs = chunks.map((text, i) => ({
-      id: uuidv4(),
-      title,
-      chunkIndex: i,
-      content: text,
-    }));
+    const texts = chunk(content, CHUNK_SIZE, CHUNK_OVERLAP);
+    if (!texts.length) {
+      return { chunksStored: 0 };
+    }
 
-    await this.vectorStore.addBatch(
-      docs.map((doc) => ({ text: doc.content, payload: doc })),
+    const embeddings = await this.embeddingService.embed(texts);
+
+    await this.chunkRepository.insertMany(
+      documentId,
+      texts.map((text, chunkIndex) => ({
+        chunkIndex,
+        content: text,
+        embedding: embeddings[chunkIndex],
+      })),
     );
 
-    return { chunksStored: docs.length };
+    return { chunksStored: texts.length };
   }
 }
 

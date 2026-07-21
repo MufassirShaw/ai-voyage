@@ -1,23 +1,33 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { memoryStorage } from 'multer';
 
 import { AppController } from './app.controller';
 import { configuration } from './config/configuration';
 import { AiModule } from './modules/ai/ai.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { DatabaseModule } from './modules/database/database.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { EmbeddingModule } from './modules/embedding/embedding.module';
 import { RagModule } from './modules/rag/rag.module';
-import { VectorStoreModule } from './modules/vector-store/vector-store.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ load: [configuration], isGlobal: true }),
-    DatabaseModule,
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: config.get<string>('database.url')!,
+        autoLoadEntities: true,
+        synchronize: false,
+        migrations: [__dirname + '/migrations/*.{js,ts}'],
+        migrationsRun: true,
+      }),
+    }),
     DocumentsModule,
-    VectorStoreModule,
+    EmbeddingModule,
     AiModule,
     ChatModule,
     RagModule,

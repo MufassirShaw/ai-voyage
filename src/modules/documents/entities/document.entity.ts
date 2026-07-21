@@ -3,17 +3,16 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryGeneratedColumn,
+  OneToMany,
   UpdateDateColumn,
 } from 'typeorm';
 
-import { DocumentStatus } from './document-status.enum';
+import { AbstractEntity } from '../../common/abstract.entity';
+import { DocumentStatus } from '../types/document-status.enum';
+import { DocumentChunkEntity } from './document-chunk.entity';
 
 @Entity('documents')
-export class DocumentEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class DocumentEntity extends AbstractEntity<DocumentEntity> {
   @Column()
   title: string;
 
@@ -33,4 +32,7 @@ export class DocumentEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => DocumentChunkEntity, (chunk) => chunk.document)
+  chunks: DocumentChunkEntity[];
 }
