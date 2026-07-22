@@ -1,95 +1,115 @@
 import { Anthropic } from '@anthropic-ai/sdk';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Observable, tap } from 'rxjs';
 
 import { CustomMessageEvent, CustomMessageEventType } from '@/types/events';
 
 import { AiService } from '../ai/ai.service';
 import { SendMessageDto } from './dto/send-message.dto';
-import { Session } from './types/chat.types';
+import { ChatMessageRepository } from './repositories/chat-message.repository';
+import { ChatSessionRepository } from './repositories/chat-session.repository';
 
 @Injectable()
 export class ChatService {
-  // TODO: bind to a database
-  private readonly sessions = new Map<string, Session>();
+  private readonly logger = new Logger(ChatService.name);
 
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly sessionRepository: ChatSessionRepository,
+    private readonly messageRepository: ChatMessageRepository,
+  ) {}
 
-  createSession(): { sessionId: string } {
-    const id = uuidv4();
-    this.sessions.set(id, { id, messages: [], createdAt: new Date() });
-    return { sessionId: id };
+  async createSession(): Promise<{ sessionId: string }> {
+    const session = await this.sessionRepository.create();
+    return { sessionId: session.id };
   }
 
-  getSession(id: string): Session {
-    const session = this.sessions.get(id);
+  async getSession(id: string) {
+    const session = await this.sessionRepository.findByIdWithMessages(id);
     if (!session) {
       throw new NotFoundException(`Session ${id} not found`);
     }
-    return session;
+
+    return {
+      id: session.id,
+      createdAt: session.createdAt,
+      messages: session.messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+    };
   }
 
-  deleteSession(id: string): void {
-    if (!this.sessions.has(id)) {
+  async deleteSession(id: string): Promise<void> {
+    const deleted = await this.sessionRepository.deleteById(id);
+    if (!deleted) {
       throw new NotFoundException(`Session ${id} not found`);
     }
-    this.sessions.delete(id);
   }
 
-  sendMessage(
+  async sendMessage(
     sessionId: string,
-    dto: SendMessageDto,
-  ): Observable<CustomMessageEvent> {
-    const session = this.getSession(sessionId);
+    payload: SendMessageDto,
+  ): Promise<Observable<CustomMessageEvent>> {
+    const session =
+      await this.sessionRepository.findByIdWithMessages(sessionId);
 
-    // Build the user content blocks
-    const userContent: Anthropic.Messages.ContentBlockParam[] = [];
-
-    // Prepend any documents with citations enabled
-    if (dto.documents?.length) {
-      for (const doc of dto.documents) {
-        userContent.push({
-          type: 'document',
-          source: { type: 'text', media_type: 'text/plain', data: doc.content },
-          title: doc.title,
-          citations: { enabled: true },
-        } as unknown as Anthropic.Messages.ContentBlockParam);
-      }
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
     }
 
-    userContent.push({ type: 'text', text: dto.message });
-    const userMessage: Anthropic.Messages.MessageParam = {
-      role: 'user',
-      content: userContent,
-    };
+    // Persist the incoming user turn before streaming so its createdAt precedes
+    // the assistant reply's, keeping replay order deterministic.
+    const content = this.toUserContent(payload);
+    await this.messageRepository.create({ sessionId, role: 'user', content });
 
-    session.messages.push(userMessage);
+    const history: Anthropic.Messages.MessageParam[] = session.messages.map(
+      (message) => ({ role: message.role, content: message.content }),
+    );
 
-    // We capture the full assistant text to append to history after streaming
-    let assistantText = '';
+    // Stream the assistant reply, then persist it once the stream ends.
+    let reply = '';
+    return this.aiService.stream([...history, { role: 'user', content }]).pipe(
+      tap((event) => {
+        if (event.data.type === CustomMessageEventType.MESSAGE) {
+          reply += event.data.text;
+        }
+        if (event.data.type === CustomMessageEventType.END) {
+          void this.messageRepository
+            .create({ sessionId, role: 'assistant', content: reply })
+            .catch((err) =>
+              this.logger.error(
+                `Failed to persist assistant message for session ${sessionId}`,
+                err instanceof Error ? err.stack : String(err),
+              ),
+            );
+        }
 
-    const source$ = this.aiService.stream([...session.messages]);
+        if (event.data.type === CustomMessageEventType.ERROR) {
+          throw new Error('something went wrong', {
+            cause: event.data.text,
+          });
+        }
+      }),
+    );
+  }
 
-    return new Observable((subscriber) => {
-      const sub = source$.subscribe({
-        next: (event) => {
-          if (event.data.type === CustomMessageEventType.MESSAGE) {
-            assistantText += event.data.text;
-          }
-          if (event.data.type === CustomMessageEventType.END) {
-            session.messages.push({
-              role: 'assistant',
-              content: assistantText,
-            });
-          }
-          subscriber.next(event);
-        },
-        error: (err) => subscriber.error(err),
-        complete: () => subscriber.complete(),
-      });
+  private toUserContent(
+    payload: SendMessageDto,
+  ): Anthropic.Messages.MessageParam['content'] {
+    if (!payload.documents?.length) {
+      return payload.message;
+    }
 
-      return () => sub.unsubscribe();
-    });
+    const documents = payload.documents.map(
+      (doc): Anthropic.Messages.DocumentBlockParam => ({
+        type: 'document',
+        source: { type: 'text', media_type: 'text/plain', data: doc.content },
+        title: doc.title,
+        citations: { enabled: true },
+      }),
+    );
+
+    return [...documents, { type: 'text', text: payload.message }];
   }
 }

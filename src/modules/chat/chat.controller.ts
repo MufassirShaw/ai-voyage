@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Sse,
 } from '@nestjs/common';
@@ -18,27 +19,27 @@ import { SendMessageDto } from './dto/send-message.dto';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post('sessions')
+  @Post('')
   createSession() {
     return this.chatService.createSession();
   }
 
-  @Get('sessions/:id')
-  getSession(@Param('id') id: string) {
+  @Get(':id')
+  getSession(@Param('id', ParseUUIDPipe) id: string) {
     return this.chatService.getSession(id);
   }
 
-  @Delete('sessions/:id')
-  deleteSession(@Param('id') id: string) {
-    this.chatService.deleteSession(id);
+  @Delete(':id')
+  async deleteSession(@Param('id', ParseUUIDPipe) id: string) {
+    await this.chatService.deleteSession(id);
     return { deleted: true };
   }
 
-  @Sse('sessions/:id/messages')
+  @Sse(':id/send')
   sendMessage(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
-  ): Observable<CustomMessageEvent> {
+  ): Promise<Observable<CustomMessageEvent>> {
     return this.chatService.sendMessage(id, dto);
   }
 }
